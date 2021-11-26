@@ -166,7 +166,7 @@ def escp_read(fin = None):
     elif code == b'i': # Raster data
         spec = fin.read(7)
         color, cmode, bpp, bwidth, lines = struct.unpack("<BBBHH", spec)
-        data = rle_read(fin, bwidth, cmode)
+        data = rle_read(fin, bwidth*lines, cmode)
         escp['color'] = color
         escp['compress'] = cmode
         escp['bpp'] = bpp
