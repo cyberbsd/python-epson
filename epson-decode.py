@@ -87,9 +87,9 @@ def escp_read(fin = None):
         rclass = fin.read(1)
         rlen,   = struct.unpack("<L", fin.read(4))
         rcode  = fin.read(4)
-        rdata  = fin.read(rlen)
+        rdata = fin.read(rlen)
 
-        escpr = { 'type': 'escpr', 'class': rclass, 'code': rcode }
+        escpr = { 'type': 'escpr', 'class': rclass, 'code': rcode, 'rlen': rlen}
         if rclass == b'd':
             if rcode == b'dsnd':
                 left, top, cmode, dlen = struct.unpack(">HHBH", rdata[0:7])
@@ -97,6 +97,16 @@ def escp_read(fin = None):
                 escpr['compress'] = cmode
                 escpr['x'] = left
                 escpr['y'] = top
+                escpr['dlen'] = dlen
+                pass
+            elif rcode == b'bsnd':
+                dlen, wmode, left, top, cmode = struct.unpack(">HBHHB", rdata[0:8])
+                #rdata = rdata[7:]
+                escpr['compress'] = cmode
+                escpr['x'] = left
+                escpr['y'] = top
+                escpr['dlen'] = dlen
+                escpr['wmode'] = wmode
                 pass
             pass
         elif rclass == b'j':
@@ -135,6 +145,7 @@ def escp_read(fin = None):
                 if len(palette) == 0:
                     palette = None
                 escpr['palette'] = palette
+                rdata = None
                 pass
             pass
                 
