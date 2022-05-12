@@ -34,6 +34,7 @@ import sys
 import struct
 
 protocol = 'escp'
+ink_count_arr = [0,0,0,0,0,0,0,0,0,0,0,0]
 
 def rle_read(fin = None, blen = 0, cmode = False):
     if not cmode:
@@ -184,6 +185,7 @@ def escp_read(fin = None):
         escp['width'] = int(bwidth/bpp*8)
         escp['height'] = lines
         escp['raster'] = data
+        ink_count_arr[color]+=1
     elif code == b'(': # Extended 
         ecode = fin.read(1)
         elen,  = struct.unpack("<H", fin.read(2))
@@ -214,7 +216,10 @@ def main(fin = None):
             break
 
         print(escp)
+
         pass
+
+    print("ink : K, M, C, #, Y, LC, LM\ncnts:", ink_count_arr, file=sys.stderr)
     return
 
 if __name__ == "__main__":
