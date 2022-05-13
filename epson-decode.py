@@ -185,7 +185,13 @@ def escp_read(fin = None):
         escp['width'] = int(bwidth/bpp*8)
         escp['height'] = lines
         escp['raster'] = data
-        ink_count_arr[color]+=1
+        if color == 0x41:
+            ink_count_arr[7] += 1
+        elif color == 0x42:
+            ink_count_arr[8] += 1
+        else:
+            ink_count_arr[color]+=1
+        pass
     elif code == b'(': # Extended 
         ecode = fin.read(1)
         elen,  = struct.unpack("<H", fin.read(2))
@@ -219,7 +225,7 @@ def main(fin = None):
 
         pass
 
-    print("ink : K, M, C, #, Y, LC, LM\ncnts:", ink_count_arr, file=sys.stderr)
+    print("ink : K, M, C, #, Y, K2, K3, LM, LC\ncnts:", ink_count_arr, file=sys.stderr)
     return
 
 if __name__ == "__main__":
