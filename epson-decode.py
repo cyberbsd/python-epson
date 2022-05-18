@@ -34,7 +34,7 @@ import sys
 import struct
 
 protocol = 'escp'
-ink_count_arr = [0,0,0,0,0,0,0,0,0,0,0,0]
+ink_count_arr = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
 def rle_read(fin = None, blen = 0, cmode = False):
     if not cmode:
@@ -69,18 +69,20 @@ def escp_read(fin = None):
 
         cres, = struct.unpack("<B", fin.read(1))
         data = fin.read(clen-1)
-        escp = { 'type': protocol, 'code': code, 'response': cres }
-        if code == "TI":
+        escp = { 'type': protocol, 'code': code, 'response': cres, 'clen': clen }
+        if code == b"TI":
             date = struct.unpack(">HBBBBB", data)
             escp['date'] = "%d-%d-%d,%d:%02d:%02d" % date
         else:
-            escp['data'] = data
+            escp['data'] = data.hex()
             
         return escp
 
     ch = fin.read(1)
     if len(ch) < 1:
         return None
+    if ch == b'\x0C':
+        return {'FF'}
     if ch != b'\033':
         return { 'type': 'char', 'char': ch }
 
@@ -152,7 +154,7 @@ def escp_read(fin = None):
                 
 
         if rdata is not None and len(rdata) > 0:
-            escpr['data'] = rdata
+            escpr['data'] = rdata.hex()
 
         return escpr
 
@@ -175,6 +177,8 @@ def escp_read(fin = None):
         pass
     elif code == b'@': # Init printer
         pass
+    elif code == b'U': # Unidirection
+        escp['data'] = fin.read(1)
     elif code == b'i': # Raster data
         spec = fin.read(7)
         color, cmode, bpp, bwidth, lines = struct.unpack("<BBBHH", spec)
@@ -184,18 +188,24 @@ def escp_read(fin = None):
         escp['bpp'] = bpp
         escp['width'] = int(bwidth/bpp*8)
         escp['height'] = lines
-        escp['raster'] = data
+        escp['raster'] = data.hex()
         if color == 0x41:
             ink_count_arr[7] += 1
         elif color == 0x42:
             ink_count_arr[8] += 1
+        if color == 0x11:
+            ink_count_arr[9] += 1
+        elif color == 0x12:
+            ink_count_arr[10] += 1
         else:
             ink_count_arr[color]+=1
+        ret=fin.read(1)
         pass
     elif code == b'(': # Extended 
         ecode = fin.read(1)
         elen,  = struct.unpack("<H", fin.read(2))
         data  = fin.read(elen)
+        escp['elen'] = elen
         escp['extended'] = ecode
         if ecode == b'R':
             escp['response'] = data[0]
@@ -209,8 +219,15 @@ def escp_read(fin = None):
             escp['offset'], = struct.unpack("<L", data)
         elif ecode == b'/':  # Horizontal offset
             escp['offset'], = struct.unpack("<L", data)
+        elif ecode == b'$':  # Horizontal ABS position
+            escp['position'], = struct.unpack("<L", data)
+        elif ecode == b'D':  # dpi
+            temp, v, h = struct.unpack("<HBB", data)
+            escp['Hdpi'] = temp/h
+            escp['Vdpi'] = temp/v
+            escp['data'] = data.hex()
         else:
-            escp['data'] = data
+            escp['data'] = data.hex()
         pass
 
     return escp
